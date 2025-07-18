@@ -4,12 +4,12 @@ A modern, secure, and scalable Python library for creating and managing Windows 
 
 ## Features
 
-- **🔒 Security First**: Input validation, privilege separation, and comprehensive audit logging
-- **⚡ Async by Default**: Non-blocking operations for better concurrency and performance
-- **🔧 Type Safe**: Full type hints with runtime validation using Pydantic
-- **📊 Observable**: Structured logging, metrics collection, and health monitoring
-- **🔌 Extensible**: Plugin architecture for custom functionality
-- **☁️ Cloud Ready**: Built for scaling and container environments
+- **Security First**: Input validation, privilege separation, and comprehensive audit logging
+- **Async by Default**: Non-blocking operations for better concurrency and performance
+- **Type Safe**: Full type hints with runtime validation using Pydantic
+- **Observable**: Structured logging, metrics collection, and health monitoring
+- **Extensible**: Plugin architecture for custom functionality
+- **Cloud Ready**: Built for scaling and container environments
 
 ## Quick Start
 
