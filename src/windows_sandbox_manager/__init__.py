@@ -19,7 +19,7 @@ __email__ = "your.email@example.com"
 
 __all__ = [
     "SandboxManager",
-    "Sandbox", 
+    "Sandbox",
     "SandboxConfig",
     "SandboxError",
     "SandboxCreationError",

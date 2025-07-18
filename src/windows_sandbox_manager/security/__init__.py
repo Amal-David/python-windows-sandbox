@@ -6,6 +6,6 @@ from .validation import InputValidator, PathValidator, CommandValidator
 
 __all__ = [
     "InputValidator",
-    "PathValidator", 
+    "PathValidator",
     "CommandValidator",
 ]
