@@ -14,7 +14,7 @@ import xml.etree.ElementTree as ET
 from ..config.models import SandboxConfig
 from ..exceptions import SandboxCreationError, SandboxError, ResourceError
 from ..utils.windows import WindowsUtils
-from ..monitoring.resources import ResourceMonitor
+from ..monitoring.resources import ResourceMonitor, ResourceStats
 
 
 class SandboxState(Enum):
@@ -36,16 +36,6 @@ class ExecutionResult:
         self.returncode = returncode
         self.execution_time = execution_time
         self.success = returncode == 0
-
-
-class ResourceStats:
-    """Resource usage statistics."""
-    
-    def __init__(self, memory_mb: int, cpu_percent: float, disk_mb: int):
-        self.memory_mb = memory_mb
-        self.cpu_percent = cpu_percent
-        self.disk_mb = disk_mb
-        self.timestamp = datetime.utcnow()
 
 
 class Sandbox:

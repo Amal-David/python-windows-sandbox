@@ -7,8 +7,17 @@ import time
 from datetime import datetime
 from typing import Dict, Optional
 
-from ..core.sandbox import ResourceStats
 from ..exceptions import ResourceError
+
+
+class ResourceStats:
+    """Resource usage statistics."""
+    
+    def __init__(self, memory_mb: int, cpu_percent: float, disk_mb: int):
+        self.memory_mb = memory_mb
+        self.cpu_percent = cpu_percent
+        self.disk_mb = disk_mb
+        self.timestamp = datetime.utcnow()
 
 
 class ResourceMonitor:
