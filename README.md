@@ -149,6 +149,237 @@ asyncio.run(run_ai_agent())
 - **Folder Mapping**: Share folders between host and sandbox with configurable permissions
 - **CLI Interface**: Command-line tools for managing sandboxes
 
+## Feature Examples
+
+### Real Sandbox Execution
+
+Execute commands directly in Windows Sandbox using PowerShell Direct communication:
+
+```python
+import asyncio
+from windows_sandbox_manager import SandboxManager, SandboxConfig
+
+async def execute_commands():
+    config = SandboxConfig(name="command-sandbox")
+    
+    async with SandboxManager() as manager:
+        sandbox = await manager.create_sandbox(config)
+        
+        # Execute single command
+        result = await sandbox.execute("dir C:\\")
+        print(f"Directory listing: {result.stdout}")
+        print(f"Exit code: {result.returncode}")
+        
+        # Execute multiple commands
+        commands = [
+            "python --version",
+            "pip install requests",
+            "python -c \"import requests; print('Requests installed')\"",
+        ]
+        
+        for cmd in commands:
+            result = await sandbox.execute(cmd, timeout=120)
+            if result.success:
+                print(f"✓ {cmd}: {result.stdout.strip()}")
+            else:
+                print(f"✗ {cmd}: {result.stderr.strip()}")
+
+asyncio.run(execute_commands())
+```
+
+### Resource Monitoring
+
+Monitor sandbox resource usage in real-time:
+
+```python
+import asyncio
+from windows_sandbox_manager import SandboxManager, SandboxConfig
+
+async def monitor_resources():
+    config = SandboxConfig(
+        name="monitored-sandbox",
+        monitoring={"metrics_enabled": True}
+    )
+    
+    async with SandboxManager() as manager:
+        sandbox = await manager.create_sandbox(config)
+        
+        # Start resource-intensive task
+        await sandbox.execute("python -c \"import time; [i**2 for i in range(100000) for _ in range(1000)]\"")
+        
+        # Monitor resources during execution
+        for i in range(5):
+            stats = await sandbox.get_resource_stats()
+            print(f"Memory: {stats.memory_mb}MB | CPU: {stats.cpu_percent}% | Disk: {stats.disk_mb}MB")
+            await asyncio.sleep(2)
+
+asyncio.run(monitor_resources())
+```
+
+### Async API Operations
+
+Perform multiple sandbox operations concurrently:
+
+```python
+import asyncio
+from windows_sandbox_manager import SandboxManager, SandboxConfig
+
+async def concurrent_operations():
+    config1 = SandboxConfig(name="sandbox-1")
+    config2 = SandboxConfig(name="sandbox-2") 
+    config3 = SandboxConfig(name="sandbox-3")
+    
+    async with SandboxManager() as manager:
+        # Create multiple sandboxes concurrently
+        sandbox1, sandbox2, sandbox3 = await asyncio.gather(
+            manager.create_sandbox(config1),
+            manager.create_sandbox(config2),
+            manager.create_sandbox(config3)
+        )
+        
+        # Execute commands in parallel
+        results = await asyncio.gather(
+            sandbox1.execute("python -c \"import time; time.sleep(2); print('Task 1 done')\""),
+            sandbox2.execute("python -c \"import time; time.sleep(2); print('Task 2 done')\""),
+            sandbox3.execute("python -c \"import time; time.sleep(2); print('Task 3 done')\""),
+            return_exceptions=True
+        )
+        
+        for i, result in enumerate(results, 1):
+            if isinstance(result, Exception):
+                print(f"Sandbox {i} failed: {result}")
+            else:
+                print(f"Sandbox {i}: {result.stdout.strip()}")
+
+asyncio.run(concurrent_operations())
+```
+
+### Folder Mapping
+
+Share folders between host and sandbox with different permissions:
+
+```python
+import asyncio
+from pathlib import Path
+from windows_sandbox_manager import SandboxManager, SandboxConfig, FolderMapping
+
+async def folder_mapping_example():
+    config = SandboxConfig(
+        name="file-sandbox",
+        folders=[
+            # Read-only source code
+            FolderMapping(
+                host=Path("C:/MyProject/src"),
+                guest=Path("C:/Users/WDAGUtilityAccount/Desktop/src"),
+                readonly=True
+            ),
+            # Read-write workspace
+            FolderMapping(
+                host=Path("C:/SandboxWorkspace"),
+                guest=Path("C:/Users/WDAGUtilityAccount/Desktop/workspace"),
+                readonly=False
+            ),
+            # Read-only tools
+            FolderMapping(
+                host=Path("C:/Tools"),
+                guest=Path("C:/Users/WDAGUtilityAccount/Desktop/tools"),
+                readonly=True
+            )
+        ]
+    )
+    
+    async with SandboxManager() as manager:
+        sandbox = await manager.create_sandbox(config)
+        
+        # List shared folders
+        result = await sandbox.execute("dir C:\\Users\\WDAGUtilityAccount\\Desktop")
+        print("Shared folders:")
+        print(result.stdout)
+        
+        # Read from read-only folder
+        result = await sandbox.execute("type C:\\Users\\WDAGUtilityAccount\\Desktop\\src\\main.py")
+        print("Source file content:")
+        print(result.stdout)
+        
+        # Write to read-write workspace
+        await sandbox.execute('echo "Output from sandbox" > C:\\Users\\WDAGUtilityAccount\\Desktop\\workspace\\output.txt')
+        
+        # Verify file was created on host
+        result = await sandbox.execute("type C:\\Users\\WDAGUtilityAccount\\Desktop\\workspace\\output.txt")
+        print("Created file content:")
+        print(result.stdout)
+
+asyncio.run(folder_mapping_example())
+```
+
+### CLI Interface
+
+Use command-line tools for sandbox management:
+
+```bash
+# Create sandbox from configuration file
+wsb create --config sandbox.yaml
+
+# List active sandboxes
+wsb list
+
+# Execute command in specific sandbox
+wsb exec sandbox-abc123 "python --version"
+
+# Monitor sandbox resources
+wsb monitor sandbox-abc123
+
+# Copy files to/from sandbox
+wsb copy local_file.txt sandbox-abc123:/path/in/sandbox/
+wsb copy sandbox-abc123:/path/in/sandbox/output.txt ./local_output.txt
+
+# Get sandbox logs
+wsb logs sandbox-abc123
+
+# Shutdown specific sandbox
+wsb shutdown sandbox-abc123
+
+# Cleanup all stopped sandboxes
+wsb cleanup
+```
+
+Advanced CLI usage with configuration file:
+
+```yaml
+# sandbox.yaml
+name: "development-sandbox"
+memory_mb: 8192
+cpu_cores: 4
+networking: true
+
+folders:
+  - host: "C:\\Projects\\MyApp"
+    guest: "C:\\Users\\WDAGUtilityAccount\\Desktop\\MyApp"
+    readonly: false
+  - host: "C:\\Tools"
+    guest: "C:\\Users\\WDAGUtilityAccount\\Desktop\\tools"
+    readonly: true
+
+startup_commands:
+  - "python -m pip install --upgrade pip"
+  - "python -m pip install -r C:\\Users\\WDAGUtilityAccount\\Desktop\\MyApp\\requirements.txt"
+  - "cd C:\\Users\\WDAGUtilityAccount\\Desktop\\MyApp"
+
+monitoring:
+  metrics_enabled: true
+  alert_thresholds:
+    memory_mb: 6144
+    cpu_percent: 80.0
+```
+
+```bash
+# Create and start sandbox with configuration
+wsb create --config sandbox.yaml
+
+# Execute interactive session
+wsb shell sandbox-development --working-dir "C:\\Users\\WDAGUtilityAccount\\Desktop\\MyApp"
+```
+
 ## Requirements
 
 - Windows 10 Pro/Enterprise/Education (version 1903+)
