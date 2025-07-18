@@ -116,17 +116,17 @@ async def _create_sandbox(config_file: Path, name_override: Optional[str]):
             
             progress.update(task, description="Sandbox created successfully!")
         
-        console.print(f"✅ Sandbox '{sandbox.config.name}' created successfully!")
+        console.print(f"[green]SUCCESS[/green] Sandbox '{sandbox.config.name}' created successfully!")
         console.print(f"   ID: {sandbox.id}")
         console.print(f"   State: {sandbox.state.value}")
         console.print(f"   Memory: {sandbox.config.memory_mb}MB")
         console.print(f"   CPU Cores: {sandbox.config.cpu_cores}")
         
     except SandboxError as e:
-        console.print(f"❌ Error creating sandbox: {e}", style="red")
+        console.print(f"[red]ERROR[/red] Error creating sandbox: {e}")
         sys.exit(1)
     except Exception as e:
-        console.print(f"❌ Unexpected error: {e}", style="red")
+        console.print(f"[red]ERROR[/red] Unexpected error: {e}")
         sys.exit(1)
 
 
@@ -144,26 +144,26 @@ async def _shutdown_sandbox(sandbox_id: Optional[str], name: Optional[str],
             ) as progress:
                 task = progress.add_task("Shutting down all sandboxes...", total=None)
                 await manager.shutdown_all(timeout)
-            console.print("✅ All sandboxes shut down successfully!")
+            console.print("[green]SUCCESS[/green] All sandboxes shut down successfully!")
             
         elif sandbox_id:
             await manager.shutdown_sandbox(sandbox_id, timeout)
-            console.print(f"✅ Sandbox {sandbox_id} shut down successfully!")
+            console.print(f"[green]SUCCESS[/green] Sandbox {sandbox_id} shut down successfully!")
             
         elif name:
             sandbox = manager.get_sandbox_by_name(name)
             if not sandbox:
-                console.print(f"❌ Sandbox '{name}' not found", style="red")
+                console.print(f"[red]ERROR[/red] Sandbox '{name}' not found")
                 sys.exit(1)
             await manager.shutdown_sandbox(sandbox.id, timeout)
-            console.print(f"✅ Sandbox '{name}' shut down successfully!")
+            console.print(f"[green]SUCCESS[/green] Sandbox '{name}' shut down successfully!")
             
         else:
-            console.print("❌ Must specify sandbox ID, name, or --all", style="red")
+            console.print("[red]ERROR[/red] Must specify sandbox ID, name, or --all")
             sys.exit(1)
             
     except SandboxError as e:
-        console.print(f"❌ Error shutting down sandbox: {e}", style="red")
+        console.print(f"[red]ERROR[/red] Error shutting down sandbox: {e}")
         sys.exit(1)
 
 
@@ -213,7 +213,7 @@ async def _list_sandboxes(state_filter: Optional[str]):
         console.print(table)
         
     except Exception as e:
-        console.print(f"❌ Error listing sandboxes: {e}", style="red")
+        console.print(f"[red]ERROR[/red] Error listing sandboxes: {e}")
         sys.exit(1)
 
 
@@ -224,11 +224,11 @@ async def _exec_command(sandbox_id: str, command: str, timeout: int):
         sandbox = manager.get_sandbox(sandbox_id)
         
         if not sandbox:
-            console.print(f"❌ Sandbox '{sandbox_id}' not found", style="red")
+            console.print(f"[red]ERROR[/red] Sandbox '{sandbox_id}' not found")
             sys.exit(1)
         
         if not sandbox.is_running:
-            console.print(f"❌ Sandbox '{sandbox_id}' is not running", style="red")
+            console.print(f"[red]ERROR[/red] Sandbox '{sandbox_id}' is not running")
             sys.exit(1)
         
         console.print(f"Executing: {command}")
@@ -249,7 +249,7 @@ async def _exec_command(sandbox_id: str, command: str, timeout: int):
             sys.exit(result.returncode)
         
     except SandboxError as e:
-        console.print(f"❌ Error executing command: {e}", style="red")
+        console.print(f"[red]ERROR[/red] Error executing command: {e}")
         sys.exit(1)
 
 
@@ -276,12 +276,12 @@ def _show_status():
     # Check sandbox support
     if WindowsUtils.is_windows():
         if WindowsUtils.check_sandbox_support():
-            console.print("✅ Windows Sandbox is supported and available", style="green")
+            console.print("[green]SUCCESS[/green] Windows Sandbox is supported and available")
         else:
-            console.print("❌ Windows Sandbox is not available", style="red")
+            console.print("[red]ERROR[/red] Windows Sandbox is not available")
             console.print("   Make sure Windows Sandbox feature is enabled")
     else:
-        console.print("❌ Not running on Windows", style="red")
+        console.print("[red]ERROR[/red] Not running on Windows")
 
 
 if __name__ == '__main__':

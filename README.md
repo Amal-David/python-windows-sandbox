@@ -1,25 +1,14 @@
 # Windows Sandbox Manager
 
-A modern, secure, and scalable Python library for creating and managing Windows Sandbox instances with enterprise-grade features and performance.
+Python library for managing Windows Sandbox instances programmatically. Useful for running untrusted code, testing applications, or executing AI agents in isolated environments.
 
-## Features
-
-- **🔒 Security First**: Input validation, privilege separation, and comprehensive audit logging
-- **⚡ Async by Default**: Non-blocking operations for better concurrency and performance
-- **🔧 Type Safe**: Full type hints with runtime validation using Pydantic
-- **📊 Observable**: Structured logging, metrics collection, and health monitoring
-- **🔌 Extensible**: Plugin architecture for custom functionality
-- **☁️ Cloud Ready**: Built for scaling and container environments
-
-## Quick Start
-
-### Installation
+## Installation
 
 ```bash
 pip install windows-sandbox-manager
 ```
 
-### Basic Usage
+## Usage
 
 ```python
 import asyncio
@@ -50,94 +39,116 @@ async def main():
 asyncio.run(main())
 ```
 
-### CLI Usage
+### CLI
 
 ```bash
-# Create sandbox from config
 wsb create sandbox.yaml
-
-# List running sandboxes  
 wsb list
-
-# Execute command in sandbox
 wsb exec <sandbox-id> "python script.py"
-
-# Monitor resources
-wsb monitor <sandbox-id>
-
-# Shutdown sandbox
 wsb shutdown <sandbox-id>
 ```
 
 ## Configuration
 
-Create a YAML configuration file:
-
 ```yaml
-# sandbox.yaml
-name: "development-sandbox"
+name: "dev-sandbox"
 memory_mb: 4096
 cpu_cores: 2
 networking: true
-gpu_acceleration: false
 
 folders:
   - host: "C:\\Projects\\MyApp"
     guest: "C:\\Users\\WDAGUtilityAccount\\Desktop\\MyApp"
     readonly: false
 
-environment:
-  PYTHON_PATH: "C:\\Python39"
-  DEBUG: "true"
-
 startup_commands:
   - "python --version"
-  - "pip install -r requirements.txt"
-
-security:
-  isolation_level: "high"
-  network_restrictions:
-    allow: ["*.github.com"]
-    deny: ["*"]
-
-monitoring:
-  metrics_enabled: true
-  log_level: "info"
-  health_check_interval: 30
 ```
+
+## AI Agent Execution
+
+Windows Sandbox provides a secure environment for running AI agents that need to execute untrusted code or interact with the file system without risking the host machine.
+
+### Example: Running an AI Code Agent
+
+```python
+import asyncio
+from windows_sandbox_manager import SandboxManager, SandboxConfig, FolderMapping
+from pathlib import Path
+
+async def run_ai_agent():
+    config = SandboxConfig(
+        name="ai-agent-sandbox",
+        memory_mb=8192,
+        cpu_cores=4,
+        networking=True,
+        folders=[
+            FolderMapping(
+                host=Path("C:/agent_workspace"),
+                guest=Path("C:/Users/WDAGUtilityAccount/Desktop/workspace"),
+                readonly=False
+            )
+        ],
+        startup_commands=[
+            "python -m pip install requests openai",
+            "python -c \"print('AI Agent environment ready')\""
+        ]
+    )
+    
+    async with SandboxManager() as manager:
+        sandbox = await manager.create_sandbox(config)
+        
+        # Execute AI agent code safely
+        agent_code = '''
+import os
+import requests
+
+# AI agent can safely write files, make network requests, etc.
+with open("output.txt", "w") as f:
+    f.write("AI agent executed safely in sandbox")
+
+# Network access is isolated
+response = requests.get("https://api.github.com")
+print(f"API Status: {response.status_code}")
+'''
+        
+        # Write agent code to sandbox
+        result = await sandbox.execute(f'echo "{agent_code}" > agent.py')
+        
+        # Run the agent
+        result = await sandbox.execute("python agent.py")
+        print(f"Agent output: {result.stdout}")
+        
+        # Check results
+        result = await sandbox.execute("type output.txt")
+        print(f"Agent created file: {result.stdout}")
+
+asyncio.run(run_ai_agent())
+```
+
+### Use Cases for AI Agents
+
+- **Code Generation & Execution**: Let AI agents write and test code without affecting your system
+- **File System Operations**: Allow agents to create, modify, and organize files safely
+- **Web Scraping**: Run web scraping agents with network isolation
+- **Data Processing**: Process untrusted data files in a contained environment
+- **Testing & Validation**: Test AI-generated scripts before running on production systems
 
 ## Requirements
 
-- Windows 10 Pro/Enterprise/Education (version 1903 or later)
+- Windows 10 Pro/Enterprise/Education (version 1903+)
 - Windows Sandbox feature enabled
-- Python 3.9 or later
+- Python 3.9+
 
-## Architecture
+## Development
 
-The library is built with a modular architecture:
-
-- **Core Engine**: Async sandbox lifecycle management
-- **Configuration System**: Type-safe configuration with Pydantic
-- **Security Framework**: Input validation and privilege management
-- **Communication Layer**: High-performance gRPC communication
-- **Monitoring System**: Resource tracking and health checks
-- **Plugin System**: Extensible functionality framework
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes with tests
-4. Submit a pull request
+```bash
+git clone https://github.com/Amal-David/python-windows-sandbox.git
+cd python-windows-sandbox
+pip install -e ".[dev]"
+pytest
+```
 
 ## License
 
-MIT License - see LICENSE file for details.
-
-## Inspiration
-
-This project was inspired by existing Windows Sandbox automation tools and aims to provide a modern, production-ready alternative with enterprise features.
-
----
-
-For detailed documentation, examples, and API reference, visit our [documentation site](https://windows-sandbox-manager.readthedocs.io).
+MIT
