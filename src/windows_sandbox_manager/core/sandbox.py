@@ -287,7 +287,7 @@ class Sandbox:
         }}
         '''
         
-        return f'powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "{ps_script.replace('"', '""")}"'
+        return f'powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "{ps_script.replace('"', '\'\'')}"'
     
     async def _cleanup(self) -> None:
         """Clean up temporary files and resources."""
