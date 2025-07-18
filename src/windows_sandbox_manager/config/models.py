@@ -30,7 +30,7 @@ class NetworkRestriction(BaseModel):
 
 class SecurityConfig(BaseModel):
     """Security configuration for sandbox."""
-    isolation_level: str = Field(default="medium", regex=r"^(low|medium|high)$")
+    isolation_level: str = Field(default="medium", pattern=r"^(low|medium|high)$")
     network_restrictions: Optional[NetworkRestriction] = None
     file_access: Dict[str, bool] = Field(default_factory=dict)
     
@@ -38,7 +38,7 @@ class SecurityConfig(BaseModel):
 class MonitoringConfig(BaseModel):
     """Monitoring and observability configuration."""
     metrics_enabled: bool = True
-    log_level: str = Field(default="info", regex=r"^(debug|info|warning|error|critical)$")
+    log_level: str = Field(default="info", pattern=r"^(debug|info|warning|error|critical)$")
     health_check_interval: int = Field(default=30, ge=1, le=3600)
 
 
