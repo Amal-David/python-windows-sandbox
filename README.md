@@ -115,9 +115,15 @@ print(f"API Status: {response.status_code}")
         # Write agent code to sandbox
         result = await sandbox.execute(f'echo "{agent_code}" > agent.py')
         
-        # Run the agent
+        # Run the agent (now uses real PowerShell Direct communication)
         result = await sandbox.execute("python agent.py")
         print(f"Agent output: {result.stdout}")
+        print(f"Exit code: {result.returncode}")
+        
+        # Monitor resource usage
+        stats = await sandbox.get_resource_stats()
+        print(f"Memory usage: {stats.memory_mb}MB")
+        print(f"CPU usage: {stats.cpu_percent}%")
         
         # Check results
         result = await sandbox.execute("type output.txt")
@@ -134,11 +140,21 @@ asyncio.run(run_ai_agent())
 - **Data Processing**: Process untrusted data files in a contained environment
 - **Testing & Validation**: Test AI-generated scripts before running on production systems
 
+## Features
+
+- **Real Sandbox Execution**: Execute commands directly in Windows Sandbox VMs using PowerShell Direct
+- **Resource Monitoring**: Monitor CPU, memory, and disk usage of sandbox processes in real-time
+- **Async API**: Full async/await support for non-blocking sandbox operations
+- **Secure Isolation**: Complete isolation from host system for running untrusted code
+- **Folder Mapping**: Share folders between host and sandbox with configurable permissions
+- **CLI Interface**: Command-line tools for managing sandboxes
+
 ## Requirements
 
 - Windows 10 Pro/Enterprise/Education (version 1903+)
 - Windows Sandbox feature enabled
 - Python 3.9+
+- PowerShell 5.0+ (for sandbox communication)
 
 ## Development
 
