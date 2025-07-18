@@ -3,6 +3,7 @@ Resource monitoring for sandbox instances.
 """
 
 import asyncio
+import psutil
 from datetime import datetime
 from typing import Optional
 
@@ -69,14 +70,50 @@ class ResourceMonitor:
                 await asyncio.sleep(self.interval)
 
     async def _collect_stats(self) -> ResourceStats:
-        """Collect current resource statistics."""
-        # This is a placeholder implementation
-        # In a real implementation, this would query actual system resources
-        # for the specific sandbox process
-
-        # Simulate resource collection
-        memory_mb = 1024  # Placeholder
-        cpu_percent = 15.5  # Placeholder
-        disk_mb = 512  # Placeholder
-
-        return ResourceStats(memory_mb=memory_mb, cpu_percent=cpu_percent, disk_mb=disk_mb)
+        """Collect current resource statistics for sandbox process."""
+        try:
+            # Find sandbox processes by name (WindowsSandbox.exe)
+            sandbox_processes = []
+            for proc in psutil.process_iter(['pid', 'name', 'memory_info', 'cpu_percent']):
+                try:
+                    if proc.info['name'] and 'sandbox' in proc.info['name'].lower():
+                        sandbox_processes.append(proc)
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    continue
+            
+            if not sandbox_processes:
+                # No sandbox processes found, return zero stats
+                return ResourceStats(memory_mb=0, cpu_percent=0.0, disk_mb=0)
+            
+            # Aggregate stats from all sandbox processes
+            total_memory_bytes = 0
+            total_cpu_percent = 0.0
+            total_disk_mb = 0
+            
+            for proc in sandbox_processes:
+                try:
+                    # Memory usage
+                    memory_info = proc.memory_info()
+                    total_memory_bytes += memory_info.rss
+                    
+                    # CPU usage (get current reading)
+                    cpu_percent = proc.cpu_percent()
+                    total_cpu_percent += cpu_percent
+                    
+                    # Disk usage estimation (based on process working set)
+                    total_disk_mb += memory_info.vms // (1024 * 1024)
+                    
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    continue
+            
+            memory_mb = total_memory_bytes // (1024 * 1024)
+            
+            return ResourceStats(
+                memory_mb=int(memory_mb),
+                cpu_percent=round(total_cpu_percent, 2),
+                disk_mb=int(total_disk_mb)
+            )
+            
+        except Exception:
+            # If monitoring fails, return zero stats rather than crashing
+            return ResourceStats(memory_mb=0, cpu_percent=0.0, disk_mb=0)

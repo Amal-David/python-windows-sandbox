@@ -124,12 +124,12 @@ class Sandbox:
         start_time = asyncio.get_event_loop().time()
 
         try:
-            # For now, this is a placeholder implementation
-            # In a real implementation, this would use the communication layer
-            # to send commands to the sandbox
-
+            # Execute command in Windows Sandbox via PowerShell remoting
+            # Using PowerShell Direct to communicate with the sandbox VM
+            ps_command = self._build_powershell_command(command)
+            
             proc = await asyncio.create_subprocess_shell(
-                f'echo "Simulated execution: {command}"',
+                ps_command,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
@@ -265,6 +265,30 @@ class Sandbox:
         if self.process:
             await self.process.wait()
 
+    def _build_powershell_command(self, command: str) -> str:
+        """Build PowerShell command to execute in Windows Sandbox."""
+        # Escape the command for PowerShell
+        escaped_command = command.replace('"', '""').replace("'", "''")
+        
+        # Use PowerShell Direct to execute command in sandbox VM
+        # This requires the sandbox to be running and accessible
+        ps_script = f'''
+        $VMName = "WindowsSandbox_{self.id[:8]}"
+        $Session = New-PSSession -VMName $VMName -Credential (Get-Credential -Message "Sandbox Access")
+        try {{
+            $Result = Invoke-Command -Session $Session -ScriptBlock {{
+                cmd.exe /c "{escaped_command}" 2>&1
+            }}
+            $ExitCode = Invoke-Command -Session $Session -ScriptBlock {{ $LASTEXITCODE }}
+            Write-Output "STDOUT:$Result"
+            Write-Output "EXITCODE:$ExitCode"
+        }} finally {{
+            Remove-PSSession -Session $Session -ErrorAction SilentlyContinue
+        }}
+        '''
+        
+        return f'powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "{ps_script.replace('"', '""")}"'
+    
     async def _cleanup(self) -> None:
         """Clean up temporary files and resources."""
         if self.wsb_file_path and self.wsb_file_path.exists():
