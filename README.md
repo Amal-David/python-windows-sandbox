@@ -1,6 +1,6 @@
 # Windows Sandbox Manager
 
-Python library for managing Windows Sandbox instances programmatically.
+Python library for managing Windows Sandbox instances programmatically. Useful for running untrusted code, testing applications, or executing AI agents in isolated environments.
 
 ## Installation
 
@@ -64,6 +64,75 @@ folders:
 startup_commands:
   - "python --version"
 ```
+
+## AI Agent Execution
+
+Windows Sandbox provides a secure environment for running AI agents that need to execute untrusted code or interact with the file system without risking the host machine.
+
+### Example: Running an AI Code Agent
+
+```python
+import asyncio
+from windows_sandbox_manager import SandboxManager, SandboxConfig, FolderMapping
+from pathlib import Path
+
+async def run_ai_agent():
+    config = SandboxConfig(
+        name="ai-agent-sandbox",
+        memory_mb=8192,
+        cpu_cores=4,
+        networking=True,
+        folders=[
+            FolderMapping(
+                host=Path("C:/agent_workspace"),
+                guest=Path("C:/Users/WDAGUtilityAccount/Desktop/workspace"),
+                readonly=False
+            )
+        ],
+        startup_commands=[
+            "python -m pip install requests openai",
+            "python -c \"print('AI Agent environment ready')\""
+        ]
+    )
+    
+    async with SandboxManager() as manager:
+        sandbox = await manager.create_sandbox(config)
+        
+        # Execute AI agent code safely
+        agent_code = '''
+import os
+import requests
+
+# AI agent can safely write files, make network requests, etc.
+with open("output.txt", "w") as f:
+    f.write("AI agent executed safely in sandbox")
+
+# Network access is isolated
+response = requests.get("https://api.github.com")
+print(f"API Status: {response.status_code}")
+'''
+        
+        # Write agent code to sandbox
+        result = await sandbox.execute(f'echo "{agent_code}" > agent.py')
+        
+        # Run the agent
+        result = await sandbox.execute("python agent.py")
+        print(f"Agent output: {result.stdout}")
+        
+        # Check results
+        result = await sandbox.execute("type output.txt")
+        print(f"Agent created file: {result.stdout}")
+
+asyncio.run(run_ai_agent())
+```
+
+### Use Cases for AI Agents
+
+- **Code Generation & Execution**: Let AI agents write and test code without affecting your system
+- **File System Operations**: Allow agents to create, modify, and organize files safely
+- **Web Scraping**: Run web scraping agents with network isolation
+- **Data Processing**: Process untrusted data files in a contained environment
+- **Testing & Validation**: Test AI-generated scripts before running on production systems
 
 ## Requirements
 
