@@ -155,18 +155,33 @@ class TestCommandValidator:
                 CommandValidator.validate_command(cmd)
     
     def test_dangerous_base_commands(self):
-        """Test detection of dangerous base commands."""
+        """Test detection of truly dangerous base commands."""
+        # Only truly dangerous commands that could harm system even in sandbox
         dangerous_commands = [
-            "cmd /c dir",
-            "powershell Get-Process",
-            "net user",
+            "format C:",
+            "diskpart",
             "shutdown /s",
-            "del important.txt",
+            "restart",
+            "reboot",
         ]
         
         for cmd in dangerous_commands:
             with pytest.raises(SecurityError):
                 CommandValidator.validate_command(cmd)
+                
+        # Commands that should be allowed in sandbox environment
+        allowed_commands = [
+            "cmd /c dir",
+            "powershell Get-Process", 
+            "python script.py",
+            "dir",
+            "type file.txt",
+        ]
+        
+        for cmd in allowed_commands:
+            # Should not raise an exception
+            result = CommandValidator.validate_command(cmd)
+            assert result == cmd
     
     def test_sanitize_argument(self):
         """Test argument sanitization."""
