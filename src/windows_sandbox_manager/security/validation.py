@@ -141,27 +141,13 @@ class CommandValidator:
     Command validation to prevent injection attacks.
     """
 
+    # Commands that could be dangerous even in sandbox (system manipulation)
     DANGEROUS_COMMANDS = {
-        "cmd",
-        "powershell",
-        "wmic",
-        "net",
-        "netsh",
-        "reg",
-        "regedit",
-        "schtasks",
-        "sc",
-        "shutdown",
-        "restart",
         "format",
         "diskpart",
-        "del",
-        "rmdir",
-        "rd",
-        "erase",
-        "attrib",
-        "cacls",
-        "icacls",
+        "shutdown",
+        "restart",
+        "reboot",
     }
 
     DANGEROUS_PATTERNS = [
@@ -171,7 +157,7 @@ class CommandValidator:
         r"`[^`]+`",  # Command substitution
         r"\$\([^)]+\)",  # Command substitution $()
         r">\s*\S",  # Output redirection
-        r"<\s*\S",  # Input redirection (changed \w to \S to match any non-whitespace)
+        r"<\s*\S",  # Input redirection
     ]
 
     @classmethod

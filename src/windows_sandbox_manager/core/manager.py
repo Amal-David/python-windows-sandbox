@@ -3,6 +3,7 @@ Multi-sandbox manager with async operations and registry integration.
 """
 
 import asyncio
+import logging
 from typing import Dict, List, Optional, Any
 
 from .sandbox import Sandbox, SandboxState
@@ -155,18 +156,16 @@ class SandboxManager:
         """Safely shutdown a sandbox with error handling."""
         try:
             await self.shutdown_sandbox(sandbox_id, timeout)
-        except Exception:
-            # Log error but don't let it affect other shutdowns
-            pass
+        except Exception as e:
+            logging.error(f"Error during sandbox shutdown {sandbox_id}: {e}")
 
     async def _cleanup_failed_sandbox(self, sandbox_id: str) -> None:
         """Clean up a failed sandbox creation."""
         try:
             await self._registry.unregister(sandbox_id)
             self._sandboxes.pop(sandbox_id, None)
-        except Exception:
-            # Log error but don't raise
-            pass
+        except Exception as e:
+            logging.error(f"Error cleaning up failed sandbox {sandbox_id}: {e}")
 
     async def __aenter__(self) -> "SandboxManager":
         """Async context manager entry."""

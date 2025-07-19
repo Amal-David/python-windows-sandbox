@@ -43,7 +43,7 @@ class SandboxRegistry:
                 name=sandbox.config.name,
                 state=sandbox.state.value,
                 created_at=sandbox.created_at.isoformat(),
-                config_snapshot=sandbox.config.dict(),
+                config_snapshot=sandbox.config.model_dump(),
                 last_seen=datetime.utcnow().isoformat(),
             )
 

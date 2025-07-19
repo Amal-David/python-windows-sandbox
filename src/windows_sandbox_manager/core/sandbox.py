@@ -4,6 +4,7 @@ Async sandbox lifecycle manager with state management and resource monitoring.
 
 import asyncio
 import uuid
+import logging
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
@@ -254,11 +255,9 @@ class Sandbox:
             try:
                 result = await self.execute(command, timeout=60)
                 if not result.success:
-                    # Log warning but don't fail startup
-                    pass
-            except Exception:
-                # Log error but continue with other commands
-                pass
+                    logging.warning(f"Startup command failed: {command} - {result.stderr}")
+            except Exception as e:
+                logging.error(f"Error executing startup command '{command}': {e}")
 
     async def _wait_for_process(self) -> None:
         """Wait for sandbox process to terminate."""
@@ -295,6 +294,5 @@ class Sandbox:
         if self.wsb_file_path and self.wsb_file_path.exists():
             try:
                 self.wsb_file_path.unlink()
-            except Exception:
-                # Log warning but don't fail cleanup
-                pass
+            except Exception as e:
+                logging.warning(f"Failed to cleanup WSB file {self.wsb_file_path}: {e}")

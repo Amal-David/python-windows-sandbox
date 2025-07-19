@@ -99,7 +99,7 @@ class SandboxConfig(BaseModel):
         """Save configuration to file."""
         file_path = Path(file_path)
 
-        data = self.dict()
+        data = self.model_dump()
 
         if format.lower() in ["yml", "yaml"]:
             content = yaml.dump(data, default_flow_style=False, sort_keys=False)

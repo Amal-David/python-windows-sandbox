@@ -3,8 +3,9 @@ Windows Sandbox Manager - A modern, secure Python library for Windows Sandbox ma
 """
 
 from .core.manager import SandboxManager
-from .core.sandbox import Sandbox
-from .config.models import SandboxConfig
+from .core.sandbox import Sandbox, SandboxState, ExecutionResult
+from .config.models import SandboxConfig, FolderMapping, SecurityConfig, MonitoringConfig
+from .monitoring.resources import ResourceMonitor, ResourceStats
 from .exceptions import (
     SandboxError,
     SandboxCreationError,
@@ -20,7 +21,14 @@ __email__ = "your.email@example.com"
 __all__ = [
     "SandboxManager",
     "Sandbox",
+    "SandboxState",
+    "ExecutionResult",
     "SandboxConfig",
+    "FolderMapping",
+    "SecurityConfig",
+    "MonitoringConfig",
+    "ResourceMonitor",
+    "ResourceStats",
     "SandboxError",
     "SandboxCreationError",
     "SandboxNotFoundError",

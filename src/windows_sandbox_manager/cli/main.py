@@ -262,8 +262,77 @@ async def _exec_command(sandbox_id: str, command: str, timeout: int):
 
 async def _monitor_sandbox(sandbox_id: Optional[str], monitor_all: bool, interval: int):
     """Monitor sandbox implementation."""
-    console.print("Resource monitoring not fully implemented yet.")
-    console.print("This would show real-time resource usage for sandbox(es).")
+    try:
+        manager = SandboxManager()
+        
+        if monitor_all:
+            sandboxes = manager.list_sandboxes(SandboxState.RUNNING)
+            if not sandboxes:
+                console.print("No running sandboxes to monitor.")
+                return
+        else:
+            if not sandbox_id:
+                console.print("[red]ERROR[/red] Must specify sandbox ID or use --all")
+                sys.exit(1)
+                
+            sandbox = manager.get_sandbox(sandbox_id)
+            if not sandbox:
+                console.print(f"[red]ERROR[/red] Sandbox '{sandbox_id}' not found")
+                sys.exit(1)
+                
+            if not sandbox.is_running:
+                console.print(f"[red]ERROR[/red] Sandbox '{sandbox_id}' is not running")
+                sys.exit(1)
+                
+            sandboxes = [sandbox]
+        
+        console.print(f"Monitoring {len(sandboxes)} sandbox(es). Press Ctrl+C to stop.")
+        console.print()
+        
+        try:
+            while True:
+                # Create monitoring table
+                table = Table(title=f"Resource Monitor (Interval: {interval}s)")
+                table.add_column("Sandbox", style="cyan")
+                table.add_column("Name", style="green")
+                table.add_column("Memory", justify="right", style="yellow")
+                table.add_column("CPU", justify="right", style="blue")
+                table.add_column("Disk", justify="right", style="magenta")
+                table.add_column("Uptime", justify="right", style="white")
+                
+                for sandbox in sandboxes:
+                    if sandbox._resource_monitor:
+                        stats = await sandbox._resource_monitor.get_stats()
+                        table.add_row(
+                            sandbox.id[:8] + "...",
+                            sandbox.config.name,
+                            f"{stats.memory_mb}MB",
+                            f"{stats.cpu_percent:.1f}%",
+                            f"{stats.disk_mb}MB",
+                            f"{sandbox.uptime:.0f}s"
+                        )
+                    else:
+                        table.add_row(
+                            sandbox.id[:8] + "...",
+                            sandbox.config.name,
+                            "N/A",
+                            "N/A",
+                            "N/A",
+                            f"{sandbox.uptime:.0f}s"
+                        )
+                
+                # Clear screen and show table
+                console.clear()
+                console.print(table)
+                
+                await asyncio.sleep(interval)
+                
+        except KeyboardInterrupt:
+            console.print("\n[yellow]Monitoring stopped by user[/yellow]")
+            
+    except SandboxError as e:
+        console.print(f"[red]ERROR[/red] Error monitoring sandbox: {e}")
+        sys.exit(1)
 
 
 def _show_status():
