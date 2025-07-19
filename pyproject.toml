@@ -4,12 +4,12 @@ build-backend = "hatchling.build"
 
 [project]
 name = "windows-sandbox-manager"
-version = "1.0.0"
+version = "0.3.0"
 description = "A modern, secure, and scalable Python library for creating and managing Windows Sandbox instances"
 readme = "README.md"
 license = "MIT"
 authors = [
-    {name = "Your Name", email = "your.email@example.com"},
+    {name = "Amal David", email = "labuka@duck.com"},
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
