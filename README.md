@@ -143,11 +143,12 @@ asyncio.run(run_ai_agent())
 ## Features
 
 - **Real Sandbox Execution**: Execute commands directly in Windows Sandbox VMs using PowerShell Direct
-- **Resource Monitoring**: Monitor CPU, memory, and disk usage of sandbox processes in real-time
+- **Enhanced Resource Monitoring**: Real-time monitoring of CPU, memory, disk I/O, and network usage with configurable alerts
 - **Async API**: Full async/await support for non-blocking sandbox operations
 - **Secure Isolation**: Complete isolation from host system for running untrusted code
 - **Folder Mapping**: Share folders between host and sandbox with configurable permissions
 - **CLI Interface**: Command-line tools for managing sandboxes
+- **Configuration Management**: YAML/JSON based configuration with validation
 
 ## Feature Examples
 
@@ -187,13 +188,14 @@ async def execute_commands():
 asyncio.run(execute_commands())
 ```
 
-### Resource Monitoring
+### Enhanced Resource Monitoring
 
-Monitor sandbox resource usage in real-time:
+Monitor sandbox resource usage in real-time with detailed metrics:
 
 ```python
 import asyncio
 from windows_sandbox_manager import SandboxManager, SandboxConfig
+from windows_sandbox_manager.monitoring import ResourceMonitor
 
 async def monitor_resources():
     config = SandboxConfig(
@@ -203,17 +205,49 @@ async def monitor_resources():
     
     async with SandboxManager() as manager:
         sandbox = await manager.create_sandbox(config)
+        monitor = ResourceMonitor(sandbox)
+        
+        # Start monitoring
+        await monitor.start()
         
         # Start resource-intensive task
         await sandbox.execute("python -c \"import time; [i**2 for i in range(100000) for _ in range(1000)]\"")
         
-        # Monitor resources during execution
+        # Get detailed metrics
         for i in range(5):
-            stats = await sandbox.get_resource_stats()
-            print(f"Memory: {stats.memory_mb}MB | CPU: {stats.cpu_percent}% | Disk: {stats.disk_mb}MB")
+            metrics = await monitor.get_metrics()
+            print(f"CPU: {metrics.cpu_percent:.1f}%")
+            print(f"Memory: {metrics.memory_mb:.1f}MB (Peak: {metrics.memory_peak_mb:.1f}MB)")
+            print(f"Disk Read: {metrics.disk_read_mb:.2f}MB/s")
+            print(f"Disk Write: {metrics.disk_write_mb:.2f}MB/s")
+            print(f"Network In: {metrics.network_recv_mbps:.2f}Mbps")
+            print(f"Network Out: {metrics.network_sent_mbps:.2f}Mbps")
+            print("---")
             await asyncio.sleep(2)
+        
+        # Stop monitoring
+        await monitor.stop()
 
 asyncio.run(monitor_resources())
+```
+
+Configure resource alerts:
+
+```python
+from windows_sandbox_manager import SandboxConfig, MonitoringConfig
+
+config = SandboxConfig(
+    name="alert-sandbox",
+    monitoring=MonitoringConfig(
+        metrics_enabled=True,
+        alert_thresholds={
+            "cpu_percent": 80.0,
+            "memory_mb": 6144,
+            "disk_write_mb_per_sec": 100.0
+        },
+        health_check_interval=30
+    )
+)
 ```
 
 ### Async API Operations
@@ -395,6 +429,23 @@ cd python-windows-sandbox
 pip install -e ".[dev]"
 pytest
 ```
+
+## Changelog
+
+### Version 0.3.1
+- Fixed missing `description` attribute in SandboxConfig
+- Enhanced resource monitoring with detailed metrics (CPU, memory, disk I/O, network)
+- Added ResourceMonitor class for advanced monitoring capabilities
+- Improved memory peak tracking and resource metrics
+- Added psutil dependency for better system metrics
+
+### Version 0.3.0
+- Initial public release
+- Real Windows Sandbox execution via PowerShell Direct
+- Async/await API support
+- CLI interface
+- Folder mapping capabilities
+- Basic resource monitoring
 
 ## License
 
