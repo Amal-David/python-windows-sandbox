@@ -18,6 +18,7 @@ from ..core.manager import SandboxManager
 from ..core.sandbox import SandboxState
 from ..exceptions import SandboxError
 from ..utils.windows import WindowsUtils
+from ..utils.system_check import SystemChecker, check_requirements
 
 console = Console()
 
@@ -298,7 +299,9 @@ async def _monitor_sandbox(sandbox_id: Optional[str], monitor_all: bool, interva
                 table.add_column("Memory", justify="right", style="yellow")
                 table.add_column("CPU", justify="right", style="blue")
                 table.add_column("Disk", justify="right", style="magenta")
-                table.add_column("Uptime", justify="right", style="white")
+                table.add_column("Network", justify="right", style="cyan")
+                table.add_column("Disk I/O", justify="right", style="red")
+                table.add_column("Procs", justify="right", style="white")
                 
                 for sandbox in sandboxes:
                     if sandbox._resource_monitor:
@@ -306,10 +309,12 @@ async def _monitor_sandbox(sandbox_id: Optional[str], monitor_all: bool, interva
                         table.add_row(
                             sandbox.id[:8] + "...",
                             sandbox.config.name,
-                            f"{stats.memory_mb}MB",
+                            f"{stats.memory_mb}MB ({stats.memory_percent:.1f}%)",
                             f"{stats.cpu_percent:.1f}%",
                             f"{stats.disk_mb}MB",
-                            f"{sandbox.uptime:.0f}s"
+                            f"↑{stats.network_sent_mb:.1f}MB ↓{stats.network_recv_mb:.1f}MB",
+                            f"R:{stats.disk_io_read_mb:.1f}MB W:{stats.disk_io_write_mb:.1f}MB",
+                            str(stats.process_count)
                         )
                     else:
                         table.add_row(
@@ -318,7 +323,9 @@ async def _monitor_sandbox(sandbox_id: Optional[str], monitor_all: bool, interva
                             "N/A",
                             "N/A",
                             "N/A",
-                            f"{sandbox.uptime:.0f}s"
+                            "N/A",
+                            "N/A",
+                            "N/A"
                         )
                 
                 # Clear screen and show table
@@ -332,6 +339,109 @@ async def _monitor_sandbox(sandbox_id: Optional[str], monitor_all: bool, interva
             
     except SandboxError as e:
         console.print(f"[red]ERROR[/red] Error monitoring sandbox: {e}")
+        sys.exit(1)
+
+
+@cli.command(name="check-system")
+@click.option("--verbose", "-v", is_flag=True, help="Show detailed information")
+@click.option("--fix-instructions", is_flag=True, help="Show fix instructions for failures")
+def check_system(verbose: bool, fix_instructions: bool):
+    """Check if system meets Windows Sandbox requirements."""
+    console.print("[bold]Windows Sandbox System Requirements Check[/bold]\n")
+    
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+        transient=True
+    ) as progress:
+        task = progress.add_task("Checking system requirements...", total=None)
+        result = check_requirements()
+    
+    # Display results
+    if result.can_run_sandbox:
+        console.print(Panel.fit(
+            "✅ [green bold]System is ready for Windows Sandbox[/green bold]",
+            border_style="green"
+        ))
+    else:
+        console.print(Panel.fit(
+            "❌ [red bold]System does not meet requirements[/red bold]",
+            border_style="red"
+        ))
+    
+    # System info
+    console.print(f"\n[cyan]System:[/cyan] {result.os_version} - {result.os_edition}")
+    console.print(f"[cyan]Admin:[/cyan] {'Yes' if result.is_admin else 'No'}")
+    console.print(f"[cyan]Memory:[/cyan] {result.total_memory_gb:.1f} GB")
+    console.print(f"[cyan]CPU Cores:[/cyan] {result.cpu_cores}")
+    
+    # Requirements table
+    table = Table(title="\nRequirements Status", show_header=True, header_style="bold magenta")
+    table.add_column("Requirement", style="cyan", width=25)
+    table.add_column("Status", justify="center", width=10)
+    table.add_column("Details", style="dim", width=45)
+    
+    for req in result.requirements:
+        status_icon = {
+            "passed": "✅",
+            "failed": "❌",
+            "warning": "⚠️",
+            "unknown": "❓"
+        }.get(req.status.value, "❓")
+        
+        status_style = {
+            "passed": "green",
+            "failed": "red",
+            "warning": "yellow",
+            "unknown": "dim"
+        }.get(req.status.value, "dim")
+        
+        details = req.message
+        if verbose and req.details:
+            details += f"\n{req.details}"
+        
+        table.add_row(
+            req.name,
+            f"[{status_style}]{status_icon}[/{status_style}]",
+            details
+        )
+    
+    console.print(table)
+    
+    # Show fix instructions if requested
+    if fix_instructions:
+        failed_reqs = [r for r in result.requirements if r.status.value == "failed"]
+        if failed_reqs:
+            console.print("\n[bold red]Fix Instructions:[/bold red]")
+            for req in failed_reqs:
+                if req.fix_instructions:
+                    console.print(f"\n[yellow]{req.name}:[/yellow]")
+                    console.print(f"  {req.fix_instructions}")
+    
+    # Reference to documentation
+    if not result.can_run_sandbox:
+        console.print("\n[dim]For detailed setup instructions, see SETUP_AND_TROUBLESHOOTING.md[/dim]")
+    
+    # Exit with appropriate code
+    sys.exit(0 if result.can_run_sandbox else 1)
+
+
+@cli.command()
+def validate():
+    """Quick validation that system can run Windows Sandbox."""
+    try:
+        from ..utils.system_check import verify_sandbox_ready
+        
+        if verify_sandbox_ready():
+            console.print("[green]✅ System is ready for Windows Sandbox[/green]")
+            sys.exit(0)
+        else:
+            console.print("[red]❌ System is not ready for Windows Sandbox[/red]")
+            console.print("Run 'wsb check-system --verbose' for details")
+            sys.exit(1)
+    except Exception as e:
+        console.print(f"[red]ERROR[/red] Validation failed: {e}")
         sys.exit(1)
 
 

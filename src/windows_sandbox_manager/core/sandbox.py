@@ -8,7 +8,7 @@ import logging
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Dict, Any
 import subprocess
 import asyncio.subprocess
 import xml.etree.ElementTree as ET
@@ -16,6 +16,7 @@ import xml.etree.ElementTree as ET
 from ..config.models import SandboxConfig
 from ..exceptions import SandboxCreationError, SandboxError, ResourceError
 from ..monitoring.resources import ResourceMonitor, ResourceStats
+from ..utils.system_check import SystemChecker, RequirementStatus
 
 
 class SandboxState(Enum):
@@ -59,6 +60,9 @@ class Sandbox:
         """Create and start the sandbox."""
         try:
             self.state = SandboxState.CREATING
+            
+            # Validate system requirements
+            await self._validate_system_requirements()
 
             # Generate WSB configuration file
             self.wsb_file_path = await self._generate_wsb_file()
@@ -158,6 +162,11 @@ class Sandbox:
             raise ResourceError("Resource monitoring not enabled")
 
         return await self._resource_monitor.get_stats()
+    
+    async def get_detailed_stats(self) -> Dict[str, Any]:
+        """Get detailed resource usage statistics as a dictionary."""
+        stats = await self.get_resource_stats()
+        return stats.to_dict()
 
     async def wait_for_shutdown(self) -> None:
         """Wait for sandbox to shutdown."""
@@ -296,3 +305,31 @@ class Sandbox:
                 self.wsb_file_path.unlink()
             except Exception as e:
                 logging.warning(f"Failed to cleanup WSB file {self.wsb_file_path}: {e}")
+    
+    async def _validate_system_requirements(self) -> None:
+        """Validate system meets requirements for Windows Sandbox."""
+        result = SystemChecker.check_all_requirements()
+        
+        if not result.can_run_sandbox:
+            # Build detailed error message
+            error_msg = "System does not meet Windows Sandbox requirements:\n"
+            
+            for req in result.requirements:
+                if req.status == RequirementStatus.FAILED:
+                    error_msg += f"\n❌ {req.name}: {req.message}"
+                    if req.details:
+                        error_msg += f"\n   Details: {req.details}"
+                    if req.fix_instructions:
+                        error_msg += f"\n   Fix: {req.fix_instructions}"
+            
+            error_msg += "\n\nPlease see SETUP_AND_TROUBLESHOOTING.md for detailed instructions."
+            
+            raise SandboxCreationError(error_msg)
+        
+        # Log warnings if any
+        warnings = [r for r in result.requirements if r.status == RequirementStatus.WARNING]
+        if warnings:
+            for req in warnings:
+                logging.warning(f"{req.name}: {req.message}")
+        
+        logging.info(f"System validation passed. OS: {result.os_version}, Edition: {result.os_edition}")

@@ -416,10 +416,24 @@ wsb shell sandbox-development --working-dir "C:\\Users\\WDAGUtilityAccount\\Desk
 
 ## Requirements
 
-- Windows 10 Pro/Enterprise/Education (version 1903+)
+- Windows 10 Pro/Enterprise/Education (version 1903+) 
 - Windows Sandbox feature enabled
 - Python 3.9+
 - PowerShell 5.0+ (for sandbox communication)
+- 4 GB RAM minimum (8 GB recommended)
+- Virtualization enabled in BIOS
+
+### Quick System Check
+
+```bash
+# Check if your system meets requirements
+wsb check-system
+
+# Detailed check with fix instructions
+wsb check-system --verbose --fix-instructions
+```
+
+**Having issues? See [SETUP_AND_TROUBLESHOOTING.md](SETUP_AND_TROUBLESHOOTING.md) for detailed setup instructions and solutions to common problems.**
 
 ## Development
 
@@ -437,6 +451,11 @@ pytest
 - Enhanced resource monitoring with detailed metrics (CPU, memory, disk I/O, network)
 - Added ResourceMonitor class for advanced monitoring capabilities
 - Improved memory peak tracking and resource metrics
+- Added comprehensive system requirements checker
+- Added automatic validation before sandbox creation
+- Added CLI commands: `check-system` and `validate`
+- Created detailed setup and troubleshooting documentation
+- Improved error messages with actionable fix instructions
 - Added psutil dependency for better system metrics
 
 ### Version 0.3.0
