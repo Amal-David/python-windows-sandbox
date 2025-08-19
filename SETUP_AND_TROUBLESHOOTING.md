@@ -411,4 +411,3 @@ If you encounter issues not covered here:
 
 - [Microsoft Windows Sandbox Documentation](https://docs.microsoft.com/en-us/windows/security/threat-protection/windows-sandbox/windows-sandbox-overview)
 - [Hyper-V and Virtualization](https://docs.microsoft.com/en-us/virtualization/)
-- [Windows Optional Features Reference](https://docs.microsoft.com/en-us/windows/deployment/deploy-windows-features)
