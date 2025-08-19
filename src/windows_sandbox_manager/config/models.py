@@ -61,6 +61,7 @@ class SandboxConfig(BaseModel):
     """Complete sandbox configuration."""
 
     name: str
+    description: str = ""
     memory_mb: int = Field(default=4096, ge=512, le=32768)
     cpu_cores: int = Field(default=2, ge=1, le=16)
     networking: bool = True
